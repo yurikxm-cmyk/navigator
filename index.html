@@ -100,7 +100,7 @@
         var map = L.map('map', { zoomControl: false }).setView([50.4501, 30.5234], 12);
 
         // Підключаємо детальну та швидку підкладку від Візіком
-        var visicomUrl = 'https://tms{s}.visicom.ua/2.0.0/planet3/base/{z}/{x}/{y}.png?key=' + VISICOM_API_KEY;
+        var visicomUrl = 'https://tms{s}.visicom.ua/2.0.0/planet3/base/{z}/{x}/{-y}.png?key=' + VISICOM_API_KEY;
         L.tileLayer(visicomUrl, {
             attribution: '© Візіком',
             subdomains: '123',
