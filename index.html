@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Навігатор</title>
+    <title>Навігатор Візіком</title>
+    
+    <!-- Підключаємо базові стилі карти Leaflet -->
+    <link rel="stylesheet" href="https://cloudflare.com" />
+    <script src="https://cloudflare.com"></script>
+
     <style>
         html, body {
             margin: 0;
@@ -11,28 +16,44 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #e5e5e5;
+            background: #fff; /* Змінив фон на білий, щоб ми точно побачили оновлення */
         }
-        /* Карта розгортається на весь екран смартфона та ПК */
-        iframe {
-            border: 0;
-            width: 100%;
-            height: 100%;
+        #map {
             position: absolute;
             top: 0;
+            bottom: 0;
             left: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
         }
     </style>
 </head>
 <body>
 
-    <!-- Підключаємо офіційну інтерактивну карту Google Maps з центром на Києві -->
-    <iframe 
-        src="https://google.com" 
-        allowfullscreen="" 
-        loading="lazy" 
-        referrerpolicy="no-referrer-when-downgrade">
-    </iframe>
+    <div id="map"></div>
 
+    <script>
+        // Ваш особистий перевірений API-ключ Візіком
+        const VISICOM_API_KEY = "02fc3ee7ec46e16101e5c94f03564615"; 
+
+        // Запуск карти строго на центр Києва (Майдан Незалежності)
+        var map = L.map('map', { zoomControl: true }).setView([50.4501, 30.5234], 12);
+
+        // Пряма перевірена адреса карти Візіком українською мовою
+        var visicomUrl = 'https://visicom.ua{z}/{x}/{-y}.png?key=' + VISICOM_API_KEY;
+        
+        L.tileLayer(visicomUrl, {
+            attribution: '© Візіком',
+            maxZoom: 19,
+            tms: true 
+        }).addTo(map);
+
+        // Оновлюємо розмір карти, щоб вона не злітала на смартфонах
+        setTimeout(function() {
+            map.invalidateSize();
+        }, 300);
+    </script>
 </body>
 </html>
