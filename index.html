@@ -8,7 +8,6 @@
     <!-- Подключаем карты Leaflet и стили маршрутизатора -->
     <link rel="stylesheet" href="https://unpkg.com" />
     <link rel="stylesheet" href="https://unpkg.com" />
-    <!-- Шрифт для красивого интерфейса в стиле iOS -->
     <link href="https://googleapis.com" rel="stylesheet">
 
     <style>
@@ -23,12 +22,10 @@
             height: 100%;
             background: #111;
         }
-        /* Адаптация под челку и безопасные зоны экрана iPhone */
         body {
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
         }
-        /* Панель инструкций навигации в стиле iOS Apple Maps */
         .leaflet-routing-container {
             background: rgba(255, 255, 255, 0.85) !important;
             backdrop-filter: blur(20px) !important;
@@ -46,9 +43,7 @@
             z-index: 1000;
             max-height: 220px;
             overflow-y: auto;
-            transition: all 0.3s ease;
         }
-        /* Кнопка "Моя геолокация" на экране */
         .gps-btn {
             position: fixed;
             right: 16px;
@@ -66,39 +61,27 @@
             cursor: pointer;
         }
         .gps-btn:active { background: #0056b3; }
-        .gps-btn svg {
-            width: 24px;
-            height: 24px;
-            fill: white;
-        }
-        .leaflet-control-attribution {
-            background: rgba(255,255,255,0.7) !important;
-            font-size: 10px !important;
-            border-top-left-radius: 8px;
-        }
+        .gps-btn svg { width: 24px; height: 24px; fill: white; }
     </style>
 </head>
 <body>
 
-    <!-- Кнопка определения координат -->
     <button class="gps-btn" onclick="findMe()" title="Де я?">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.54-7.49-7.49H3v-2h2.51C6 6.49 9.05 3.44 13 2.95V1h2v1.95c3.95.49 7 3.54 7.49 7.49H25v2h-2.51c-.49 3.95-3.54 7-7.49 7.49V23h-2v-1.07zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg>
     </button>
 
     <div id="map"></div>
 
-    <!-- Загружаем Leaflet и плагин маршрутов -->
     <script src="https://unpkg.com"></script>
     <script src="https://unpkg.com"></script>
 
     <script>
-        // 🔑 ВАШ ВЕРНЫЙ API-КЛЮЧ ВІЗІКОМ:
         const VISICOM_API_KEY = "02fc3ee7ec46e16101e5c94f03564615"; 
 
-        // Создаем карту с базовым центром на Киеве
+        // 1. ЖЕСТКО ЗАДАЕМ СТАРТОВУЮ ТОЧКУ (Центр Киева), чтобы карта гарантированно прогрузилась сразу!
         var map = L.map('map', { zoomControl: false }).setView([50.4501, 30.5234], 12);
 
-        // Подключаем полностью исправленный и рабочий URL карты Визиком
+        // 2. Подключаем стабильный слой тайлов
         var visicomUrl = 'https://visicom.ua{z}/{x}/{-y}.png?key=' + VISICOM_API_KEY;
         
         L.tileLayer(visicomUrl, {
@@ -109,9 +92,12 @@
 
         var userLocationMarker = null;
 
-        // Настройка умной навигации OSRM
+        // 3. Инициализируем движок навигации (OSRM)
         var routingControl = L.Routing.control({
-            waypoints: [], // Точки ставятся кликом по экрану
+            waypoints: [
+                L.latLng(50.4501, 30.5234), // Точка А по умолчанию
+                L.latLng(50.4600, 30.5300)  // Точка Б по умолчанию (чтобы сразу видеть синюю линию)
+            ],
             router: L.Routing.osrmv1({
                 serviceUrl: 'https://project-osrm.org',
                 profile: 'driving'
@@ -119,48 +105,36 @@
             routeWhileDragging: true, 
             language: 'uk', 
             showAlternatives: true, 
-            fitSelectedRoutes: true,
+            fitSelectedRoutes: false, // Отключаем авто-дёргание камеры при смене маршрута
             lineOptions: {
-                styles: [{ color: '#007AFF', opacity: 0.8, weight: 6 }] // Синяя неоновая линия маршрута
+                styles: [{ color: '#007AFF', opacity: 0.8, weight: 6 }]
             }
         }).addTo(map);
 
-        // Функция GPS локации
+        // Мягкий запуск GPS локации по нажатию на кнопку
         function findMe() {
-            map.locate({setView: true, maxZoom: 16});
+            map.locate({setView: true, maxZoom: 15});
         }
 
-        // Когда GPS нашел положение телефона
         map.on('locationfound', function(e) {
             if (userLocationMarker) {
                 userLocationMarker.setLatLng(e.latlng);
             } else {
-                // Синяя точка как в Apple Maps
                 userLocationMarker = L.circleMarker(e.latlng, {
                     radius: 9, color: '#fff', weight: 3, fillOpacity: 1, fillColor: '#007AFF'
                 }).addTo(map);
             }
-            
-            // Текущая позиция становится точкой "А"
+            // Перемещаем точку старта маршрута "А" на ваше реальное положение
             routingControl.spliceWaypoints(0, 1, e.latlng);
         });
 
-        map.on('locationerror', function() {
-            alert("Пожалуйста, включите GPS на iPhone и разрешите браузеру доступ к геолокации.");
-        });
-
-        // Клик по карте ставит точку назначения "Б"
+        // Клик по карте переставляет финишную точку "Б"
         map.on('click', function(e) {
             var currentWaypoints = routingControl.getWaypoints();
-            if (!currentWaypoints || currentWaypoints.length === 0 || !currentWaypoints[0].latLng) {
-                routingControl.spliceWaypoints(0, 1, e.latlng);
-            } else {
-                routingControl.spliceWaypoints(currentWaypoints.length - 1, 1, e.latlng);
-            }
+            routingControl.spliceWaypoints(currentWaypoints.length - 1, 1, e.latlng);
         });
 
-        // Запуск поиска GPS при старте приложения
-        findMe();
+        // ПРИ СТАРТЕ ОСТАВЛЯЕМ КАРТУ В КИЕВЕ, НЕ ДЁРГАЕМ GPS АВТОМАТИЧЕСКИ
     </script>
 </body>
 </html>
