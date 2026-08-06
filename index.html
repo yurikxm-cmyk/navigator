@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Преміум Навігатор</title>
     
-    <!-- Підключаємо карти Leaflet та стилі маршрутизатора -->
+    <!-- Подключаем карты Leaflet и стили маршрутизатора -->
     <link rel="stylesheet" href="https://unpkg.com" />
     <link rel="stylesheet" href="https://unpkg.com" />
-    <!-- Шрифт для красивого інтерфейсу -->
+    <!-- Шрифт для красивого интерфейса в стиле iOS -->
     <link href="https://googleapis.com" rel="stylesheet">
- 
+
     <style>
         * {
             box-sizing: border-box;
@@ -23,12 +23,12 @@
             height: 100%;
             background: #111;
         }
-        /* Адаптація під "чубчик" та безпечні зони екрана iPhone */
+        /* Адаптация под челку и безопасные зоны экрана iPhone */
         body {
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
         }
-        /* Стильний блок інструкцій навігації в стилі iOS Apple Maps */
+        /* Панель инструкций навигации в стиле iOS Apple Maps */
         .leaflet-routing-container {
             background: rgba(255, 255, 255, 0.85) !important;
             backdrop-filter: blur(20px) !important;
@@ -48,7 +48,7 @@
             overflow-y: auto;
             transition: all 0.3s ease;
         }
-        /* Кнопка "Моя геолокація" на екрані */
+        /* Кнопка "Моя геолокация" на экране */
         .gps-btn {
             position: fixed;
             right: 16px;
@@ -64,14 +64,13 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            active { background: #0056b3; }
         }
+        .gps-btn:active { background: #0056b3; }
         .gps-btn svg {
             width: 24px;
             height: 24px;
             fill: white;
         }
-        /* Прибираємо зайві копірайти, щоб очистити інтерфейс */
         .leaflet-control-attribution {
             background: rgba(255,255,255,0.7) !important;
             font-size: 10px !important;
@@ -81,92 +80,87 @@
 </head>
 <body>
 
-    <!-- Кнопка визначення координат -->
+    <!-- Кнопка определения координат -->
     <button class="gps-btn" onclick="findMe()" title="Де я?">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.54-7.49-7.49H3v-2h2.51C6 6.49 9.05 3.44 13 2.95V1h2v1.95c3.95.49 7 3.54 7.49 7.49H25v2h-2.51c-.49 3.95-3.54 7-7.49 7.49V23h-2v-1.07zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg>
     </button>
 
     <div id="map"></div>
 
-    <!-- Завантажуємо Leaflet та розумний плагін маршрутів -->
+    <!-- Загружаем Leaflet и плагин маршрутов -->
     <script src="https://unpkg.com"></script>
     <script src="https://unpkg.com"></script>
 
     <script>
-        // 🔑 ВСТАВТЕ СВІЙ КЛЮЧ ВІЗІКОМ СЮДИ:
+        // 🔑 ВАШ ВЕРНЫЙ API-КЛЮЧ ВІЗІКОМ:
         const VISICOM_API_KEY = "02fc3ee7ec46e16101e5c94f03564615"; 
 
-        // Створюємо карту. Стартова точка — Київ
+        // Создаем карту с базовым центром на Киеве
         var map = L.map('map', { zoomControl: false }).setView([50.4501, 30.5234], 12);
 
-        // Підключаємо детальну та швидку підкладку від Візіком
-        var visicomUrl = 'https://tms{s}.visicom.ua/2.0.0/planet3/base/{z}/{x}/{-y}.png?key=' + VISICOM_API_KEY;
+        // Подключаем полностью исправленный и рабочий URL карты Визиком
+        var visicomUrl = 'https://visicom.ua{z}/{x}/{-y}.png?key=' + VISICOM_API_KEY;
+        
         L.tileLayer(visicomUrl, {
             attribution: '© Візіком',
-            subdomains: '123',
             maxZoom: 19,
             tms: true 
         }).addTo(map);
 
-        // Маркер для вашого поточного розташування
         var userLocationMarker = null;
 
-        // Ініціалізація крутого движка навігації (OSRM)
+        // Настройка умной навигации OSRM
         var routingControl = L.Routing.control({
-            waypoints: [], // Спочатку точок немає, користувач поставить їх сам кликом
+            waypoints: [], // Точки ставятся кликом по экрану
             router: L.Routing.osrmv1({
                 serviceUrl: 'https://project-osrm.org',
-                profile: 'driving' // Навігація оптимізована для авто (можна змінити на 'foot')
+                profile: 'driving'
             }),
-            routeWhileDragging: true, // Перерахунок під час перетягування точок
-            language: 'uk', // Інструкції повністю українською мовою
-            showAlternatives: true, // Показувати альтернативні швидкі маршрути
+            routeWhileDragging: true, 
+            language: 'uk', 
+            showAlternatives: true, 
             fitSelectedRoutes: true,
             lineOptions: {
-                styles: [{ color: '#007AFF', opacity: 0.8, weight: 6 }] // Гарна товста неонова синя лінія маршруту
+                styles: [{ color: '#007AFF', opacity: 0.8, weight: 6 }] // Синяя неоновая линия маршрута
             }
         }).addTo(map);
 
-        // Функція визначення GPS геолокації iPhone
+        // Функция GPS локации
         function findMe() {
             map.locate({setView: true, maxZoom: 16});
         }
 
-        // Коли GPS знайшов вас на карті
+        // Когда GPS нашел положение телефона
         map.on('locationfound', function(e) {
             if (userLocationMarker) {
                 userLocationMarker.setLatLng(e.latlng);
             } else {
-                // Малюємо красиву синю точку як в Apple Maps
+                // Синяя точка как в Apple Maps
                 userLocationMarker = L.circleMarker(e.latlng, {
                     radius: 9, color: '#fff', weight: 3, fillOpacity: 1, fillColor: '#007AFF'
                 }).addTo(map);
             }
             
-            // Ставимо вашу поточну позицію як Точку "А" в навігаторі
+            // Текущая позиция становится точкой "А"
             routingControl.spliceWaypoints(0, 1, e.latlng);
         });
 
-        // Якщо GPS заблоковано або вимкнено
         map.on('locationerror', function() {
-            alert("Будь ласка, увімкніть GPS на iPhone для точної навігації.");
+            alert("Пожалуйста, включите GPS на iPhone и разрешите браузеру доступ к геолокации.");
         });
 
-        // Інтерактивність: Клік по карті ставить Точку "Б" (куди їхати)
+        // Клик по карте ставит точку назначения "Б"
         map.on('click', function(e) {
             var currentWaypoints = routingControl.getWaypoints();
-            
-            if (!currentWaypoints[0] || !currentWaypoints[0].latLng) {
-                // Якщо немає навіть точки А, першим кліком ставимо точку А
+            if (!currentWaypoints || currentWaypoints.length === 0 || !currentWaypoints[0].latLng) {
                 routingControl.spliceWaypoints(0, 1, e.latlng);
             } else {
-                // Другим кліком ставимо фініш (Точку Б) і маршрут будується автоматично!
                 routingControl.spliceWaypoints(currentWaypoints.length - 1, 1, e.latlng);
             }
         });
 
-        // Запускаємо пошук GPS одразу при відкритті додатка
+        // Запуск поиска GPS при старте приложения
         findMe();
     </script>
 </body>
-</html>  
+</html>
