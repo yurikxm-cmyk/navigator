@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Преміум Навігатор</title>
+    
+    <!-- Підключаємо карти Leaflet та стилі маршрутизатора -->
+    <link rel="stylesheet" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com" />
+    <!-- Шрифт для красивого інтерфейсу -->
+    <link href="https://googleapis.com" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        html, body, #map {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #111;
+        }
+        /* Адаптація під "чубчик" та безпечні зони екрана iPhone */
+        body {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        /* Стильний блок інструкцій навігації в стилі iOS Apple Maps */
+        .leaflet-routing-container {
+            background: rgba(255, 255, 255, 0.85) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border-radius: 20px !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+            border: 1px solid rgba(255, 255, 255, 0.4) !important;
+            max-width: 340px !important;
+            width: calc(100% - 32px) !important;
+            margin: 16px auto !important;
+            position: fixed !important;
+            bottom: env(safe-area-inset-bottom);
+            left: 16px;
+            right: 16px;
+            z-index: 1000;
+            max-height: 220px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+        /* Кнопка "Моя геолокація" на екрані */
+        .gps-btn {
+            position: fixed;
+            right: 16px;
+            top: calc(20px + env(safe-area-inset-top));
+            z-index: 1000;
+            width: 50px;
+            height: 50px;
+            background: #007AFF;
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0,122,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            active { background: #0056b3; }
+        }
+        .gps-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+        /* Прибираємо зайві копірайти, щоб очистити інтерфейс */
+        .leaflet-control-attribution {
+            background: rgba(255,255,255,0.7) !important;
+            font-size: 10px !important;
+            border-top-left-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Кнопка визначення координат -->
+    <button class="gps-btn" onclick="findMe()" title="Де я?">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.54-7.49-7.49H3v-2h2.51C6 6.49 9.05 3.44 13 2.95V1h2v1.95c3.95.49 7 3.54 7.49 7.49H25v2h-2.51c-.49 3.95-3.54 7-7.49 7.49V23h-2v-1.07zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg>
+    </button>
+
+    <div id="map"></div>
+
+    <!-- Завантажуємо Leaflet та розумний плагін маршрутів -->
+    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com"></script>
+
+    <script>
+        // 🔑 ВСТАВТЕ СВІЙ КЛЮЧ ВІЗІКОМ СЮДИ:
+        const VISICOM_API_KEY = "02fc3ee7ec46e16101e5c94f03564615"; 
+
+        // Створюємо карту. Стартова точка — Київ
+        var map = L.map('map', { zoomControl: false }).setView([50.4501, 30.5234], 12);
+
+        // Підключаємо детальну та швидку підкладку від Візіком
+        var visicomUrl = 'https://tms{s}.visicom.ua/2.0.0/planet3/base/{z}/{x}/{y}.png?key=' + VISICOM_API_KEY;
+        L.tileLayer(visicomUrl, {
+            attribution: '© Візіком',
+            subdomains: '123',
+            maxZoom: 19,
+            tms: true 
+        }).addTo(map);
+
+        // Маркер для вашого поточного розташування
+        var userLocationMarker = null;
+
+        // Ініціалізація крутого движка навігації (OSRM)
+        var routingControl = L.Routing.control({
+            waypoints: [], // Спочатку точок немає, користувач поставить їх сам кликом
+            router: L.Routing.osrmv1({
+                serviceUrl: 'https://project-osrm.org',
+                profile: 'driving' // Навігація оптимізована для авто (можна змінити на 'foot')
+            }),
+            routeWhileDragging: true, // Перерахунок під час перетягування точок
+            language: 'uk', // Інструкції повністю українською мовою
+            showAlternatives: true, // Показувати альтернативні швидкі маршрути
+            fitSelectedRoutes: true,
+            lineOptions: {
+                styles: [{ color: '#007AFF', opacity: 0.8, weight: 6 }] // Гарна товста неонова синя лінія маршруту
+            }
+        }).addTo(map);
+
+        // Функція визначення GPS геолокації iPhone
+        function findMe() {
+            map.locate({setView: true, maxZoom: 16});
+        }
+
+        // Коли GPS знайшов вас на карті
+        map.on('locationfound', function(e) {
+            if (userLocationMarker) {
+                userLocationMarker.setLatLng(e.latlng);
+            } else {
+                // Малюємо красиву синю точку як в Apple Maps
+                userLocationMarker = L.circleMarker(e.latlng, {
+                    radius: 9, color: '#fff', weight: 3, fillOpacity: 1, fillColor: '#007AFF'
+                }).addTo(map);
+            }
+            
+            // Ставимо вашу поточну позицію як Точку "А" в навігаторі
+            routingControl.spliceWaypoints(0, 1, e.latlng);
+        });
+
+        // Якщо GPS заблоковано або вимкнено
+        map.on('locationerror', function() {
+            alert("Будь ласка, увімкніть GPS на iPhone для точної навігації.");
+        });
+
+        // Інтерактивність: Клік по карті ставить Точку "Б" (куди їхати)
+        map.on('click', function(e) {
+            var currentWaypoints = routingControl.getWaypoints();
+            
+            if (!currentWaypoints[0] || !currentWaypoints[0].latLng) {
+                // Якщо немає навіть точки А, першим кліком ставимо точку А
+                routingControl.spliceWaypoints(0, 1, e.latlng);
+            } else {
+                // Другим кліком ставимо фініш (Точку Б) і маршрут будується автоматично!
+                routingControl.spliceWaypoints(currentWaypoints.length - 1, 1, e.latlng);
+            }
+        });
+
+        // Запускаємо пошук GPS одразу при відкритті додатка
+        findMe();
+    </script>
+</body>
+</html>
