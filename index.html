@@ -3,129 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Мій Супер Навігатор</title>
+    <title>Навігатор</title>
     
-    <!-- Підключаємо карти Leaflet та стилі маршрутизатора -->
-    <link rel="stylesheet" href="https://unpkg.com" />
-    <link rel="stylesheet" href="https://unpkg.com" />
-    <link href="https://googleapis.com" rel="stylesheet">
+    <!-- Використовуємо найнадійніші посилання, які дозволені в iOS Safari -->
+    <link rel="stylesheet" href="https://jsdelivr.net" />
+    <script src="https://jsdelivr.net"></script>
 
     <style>
-        * {
-            box-sizing: border-box;
-            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
         html, body, #map {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background: #e5e5e5; /* Світлий фон */
+            background: #e5e5e5;
         }
-        body {
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-        /* Стильна iOS-панель для інструкцій навігації */
-        .leaflet-routing-container {
-            background: rgba(255, 255, 255, 0.9) !important;
-            backdrop-filter: blur(20px) !important;
-            -webkit-backdrop-filter: blur(20px) !important;
-            border-radius: 20px !important;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
-            max-width: 340px !important;
-            width: calc(100% - 32px) !important;
-            margin: 16px auto !important;
-            position: fixed !important;
-            bottom: env(safe-area-inset-bottom);
-            left: 16px;
-            right: 16px;
-            z-index: 1000;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        /* Кнопка геолокації */
         .gps-btn {
             position: fixed;
             right: 16px;
             top: calc(20px + env(safe-area-inset-top));
             z-index: 1000;
-            width: 50px;
-            height: 50px;
+            width: 55px;
+            height: 55px;
             background: #007AFF;
             border: none;
             border-radius: 50%;
-            box-shadow: 0 4px 12px rgba(0,122,255,0.3);
+            box-shadow: 0 4px 16px rgba(0,122,255,0.4);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
-        .gps-btn svg { width: 24px; height: 24px; fill: white; }
+        .gps-btn svg { width: 26px; height: 26px; fill: white; }
     </style>
 </head>
 <body>
 
-    <button class="gps-btn" onclick="findMe()" title="Де я?">
+    <button class="gps-btn" onclick="findMe()">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.54-7.49-7.49H3v-2h2.51C6 6.49 9.05 3.44 13 2.95V1h2v1.95c3.95.49 7 3.54 7.49 7.49H25v2h-2.51c-.49 3.95-3.54 7-7.49 7.49V23h-2v-1.07zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg>
     </button>
 
     <div id="map"></div>
 
-    <script src="https://unpkg.com"></script>
-    <script src="https://unpkg.com"></script>
-
     <script>
-        // Ініціалізація карти з центром у Києві
-        var map = L.map('map', { zoomControl: false }).setView([50.4501, 30.5234], 12);
+        // Ініціалізація чистої карти без зайвих плагінів для першого запуску
+        var map = L.map('map', { zoomControl: false }).setView([50.4501, 30.5234], 11);
 
-        // Підключаємо відкриті стабільні тайли OpenStreetMap (замість обмеженого Візікома)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
+        // Стандартний, відкритий шар карт, який дозволений на будь-яких iPhone
+        L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OSM'
         }).addTo(map);
 
-        var userLocationMarker = null;
+        var userMarker = null;
 
-        // Потужна безкоштовна маршрутизація OSRM
-        var routingControl = L.Routing.control({
-            waypoints: [
-                L.latLng(50.4501, 30.5234), 
-                L.latLng(50.4600, 30.5300)  
-            ],
-            router: L.Routing.osrmv1({
-                serviceUrl: 'https://project-osrm.org',
-                profile: 'driving'
-            }),
-            routeWhileDragging: true, 
-            language: 'uk', 
-            showAlternatives: true,
-            lineOptions: {
-                styles: [{ color: '#007AFF', opacity: 0.8, weight: 6 }]
-            }
-        }).addTo(map);
-
-        // Функція GPS локації iPhone
         function findMe() {
-            map.locate({setView: true, maxZoom: 15});
+            // Запитуємо точний GPS через систему iOS
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lng = position.coords.longitude;
+                
+                map.setView([lat, lng], 15);
+                
+                if (userMarker) {
+                    userMarker.setLatLng([lat, lng]);
+                } else {
+                    userMarker = L.marker([lat, lng]).addTo(map);
+                }
+            }, function(error) {
+                alert("Помилка GPS: Перевірте дозволи в налаштуваннях iPhone для Safari");
+            }, {
+                enableHighAccuracy: true // Вмикаємо максимальну точність навігатора
+            });
         }
-
-        map.on('locationfound', function(e) {
-            if (userLocationMarker) {
-                userLocationMarker.setLatLng(e.latlng);
-            } else {
-                userLocationMarker = L.circleMarker(e.latlng, {
-                    radius: 9, color: '#fff', weight: 3, fillOpacity: 1, fillColor: '#007AFF'
-                }).addTo(map);
-            }
-            routingControl.spliceWaypoints(0, 1, e.latlng);
-        });
-
-        // Клік по карті переставляє фініш (Точку Б)
-        map.on('click', function(e) {
-            var currentWaypoints = routingControl.getWaypoints();
-            routingControl.spliceWaypoints(currentWaypoints.length - 1, 1, e.latlng);
-        });
     </script>
 </body>
 </html>
