@@ -5,18 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Навігатор</title>
     
-    <!-- Використовуємо найнадійніший CDN сервіс, який схвалено протоколами безпеки iOS Apple -->
+    <!-- Перевірені та дозволені в iOS Apple посилання на Leaflet -->
     <link rel="stylesheet" href="https://cloudflare.com" />
     <script src="https://cloudflare.com"></script>
 
     <style>
-        * { box-sizing: border-box; }
-        html, body, #map {
+        /* Жорстко фіксуємо розміри, щоб карта не схлопувалася на iPhone */
+        html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background: #f0f0f0; /* Світло-сірий колір для перевірки старту контейнера */
+            overflow: hidden;
+            background: #e5e5e5;
+        }
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            height: 100% !important; /* Примусова висота для iOS */
+            z-index: 1;
         }
         .gps-btn {
             position: fixed;
@@ -46,19 +57,23 @@
     <div id="map"></div>
 
     <script>
-        // Старт карти на базі стабільних координат Києва
-        var map = L.map('map', { zoomControl: false }).setView([50.4501, 30.5234], 11);
+        // Запуск карти на координатах Києва
+        var map = L.map('map', { zoomControl: true }).setView([50.4501, 30.5234], 12);
 
-        // Підключаємо стабільну відкриту підкладку карт OpenStreetMap
+        // Стабільна безкоштовна підкладка OpenStreetMap
         L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OSM'
         }).addTo(map);
 
+        // Примусове оновлення розміру карти відразу після її завантаження
+        setTimeout(function() {
+            map.invalidateSize();
+        }, 300);
+
         var userMarker = null;
 
         function findMe() {
-            // Запит геолокації напряму через системний інструмент Apple iOS
             navigator.geolocation.getCurrentPosition(function(position) {
                 var lat = position.coords.latitude;
                 var lng = position.coords.longitude;
@@ -71,7 +86,7 @@
                     userMarker = L.marker([lat, lng]).addTo(map);
                 }
             }, function(error) {
-                alert("Помилка GPS: Перевірте, чи дозволено доступ до геопозиції для Safari в налаштуваннях iPhone.");
+                alert("Увімкніть GPS на iPhone для визначення геопозиції.");
             }, {
                 enableHighAccuracy: true
             });
