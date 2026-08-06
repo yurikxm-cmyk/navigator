@@ -44,6 +44,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
         .gps-btn svg { width: 26px; height: 26px; fill: white; }
     </style>
@@ -60,9 +61,10 @@
         // Запуск карти на координатах Києва
         var map = L.map('map', { zoomControl: true }).setView([50.4501, 30.5234], 12);
 
-        // Стабільна безкоштовна підкладка OpenStreetMap
-        L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png', {
+        // Стабільна безкоштовна підкладка OpenStreetMap із розподілом субдоменів для обходу блокувань
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
+            subdomains: ['a', 'b', 'c'],
             attribution: '© OSM'
         }).addTo(map);
 
