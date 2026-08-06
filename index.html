@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Мій Візіком Навігатор</title>
+    <title>Преміум Навігатор</title>
     
-    <!-- Підключаємо карти Leaflet та стилі маршрутизатора -->
+    <!-- Підключаємо карти Leaflet та стилі маршрутизатора через надійні CDN Apple/Google -->
     <link rel="stylesheet" href="https://cloudflare.com" />
+    <script src="https://cloudflare.com"></script>
+    
     <link rel="stylesheet" href="https://cloudflare.com" />
+    <script src="https://cloudflare.com"></script>
     <link href="https://googleapis.com" rel="stylesheet">
 
     <style>
@@ -20,15 +23,15 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            background: #fff;
+            background: #e5e5e5;
         }
         body {
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
         }
-        /* iOS-панель для інструкцій вашої навігації */
+        /* Стильна iOS-панель для тексту та інструкцій маршруту */
         .leaflet-routing-container {
-            background: rgba(255, 255, 255, 0.92) !important;
+            background: rgba(255, 255, 255, 0.9) !important;
             backdrop-filter: blur(20px) !important;
             -webkit-backdrop-filter: blur(20px) !important;
             border-radius: 20px !important;
@@ -44,7 +47,7 @@
             max-height: 160px;
             overflow-y: auto;
         }
-        /* Синя кнопка вашого GPS */
+        /* Кругла синя кнопка GPS */
         .gps-btn {
             position: fixed;
             right: 16px;
@@ -72,63 +75,52 @@
 
     <div id="map"></div>
 
-    <script src="https://cloudflare.com"></script>
-    <script src="https://cloudflare.com"></script>
-
     <script>
-        // Вставляємо ваш особистий API-ключ Візіком
-        const VISICOM_API_KEY = "02fc3ee7ec46e16101e5c94f03564615"; 
+        // Старт карти на базі координат Києва
+        var map = L.map('map', { zoomControl: false }).setView([50.4501, 30.5234], 12);
 
-        // Запуск карти Leaflet на координатах Києва
-        var map = L.map('map', { zoomControl: false }).setView([50.4501, 30.5234], 13);
-
-        // ПУБЛІЧНИЙ сервер Візіком для розробників — він прорветься через блоки Safari/Chrome
-        var visicomUrl = 'https://visicom.ua{z}/{x}/{-y}.png?key=' + VISICOM_API_KEY;
-        
-        L.tileLayer(visicomUrl, {
-            attribution: '© Візіком',
+        // Безкоштовна, детальна і дозволена в iOS українська карта
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            tms: true,
-            crossOrigin: true // Дозволяє iPhone завантажувати картинки без CORS-помилок
+            subdomains: ['a', 'b', 'c'],
+            attribution: '© OSM Contributors'
         }).addTo(map);
 
         var userMarker = null;
 
-        // ВАША КРУТА НАВІГАЦІЯ (Движок OSRM), яка працює поверх Візікому
+        // Ваша автомобільна навігація OSRM (синя лінія)
         var routingControl = L.Routing.control({
             waypoints: [
-                L.latLng(50.4501, 30.5234), // Точка А за замовчуванням
-                L.latLng(50.4580, 30.5260)  // Точка Б
+                L.latLng(50.4501, 30.5234), // Точка А (Старт)
+                L.latLng(50.4600, 30.5300)  // Точка Б (Фініш)
             ],
             router: L.Routing.osrmv1({
                 serviceUrl: 'https://project-osrm.org',
-                profile: 'driving' // Маршрути для автомобіля
+                profile: 'driving'
             }),
             routeWhileDragging: true, 
             language: 'uk', 
             showAlternatives: true,
             lineOptions: {
-                styles: [{ color: '#007AFF', opacity: 0.8, weight: 6 }] // Синя товста лінія навігатора
+                styles: [{ color: '#007AFF', opacity: 0.8, weight: 6 }]
             }
         }).addTo(map);
 
-        setTimeout(function() { map.invalidateSize(); }, 500);
+        setTimeout(function() { map.invalidateSize(); }, 300);
 
-        // Функція визначення вашої геопозиції
+        // Визначення GPS локації вашого iPhone
         function findMe() {
             navigator.geolocation.getCurrentPosition(function(position) {
                 var lat = position.coords.latitude;
                 var lng = position.coords.longitude;
-                map.setView([lat, lng], 16);
+                map.setView([lat, lng], 15);
                 if (userMarker) { userMarker.setLatLng([lat, lng]); } 
                 else { userMarker = L.circleMarker([lat, lng], { radius: 9, color: '#fff', weight: 3, fillOpacity: 1, fillColor: '#007AFF' }).addTo(map); }
-                
-                // Ваша геопозиція автоматично стає Точкою А (Стартом маршруту)
                 routingControl.spliceWaypoints(0, 1, [lat, lng]);
-            }, function(error) { alert("Будь ласка, увімкніть GPS на iPhone."); }, { enableHighAccuracy: true });
+            }, function(error) { alert("Увімкніть GPS на вашому телефоні."); }, { enableHighAccuracy: true });
         }
 
-        // Клік пальцем по карті Візіком автоматично ставить Точку Б і ваша навігація прокладає шлях!
+        // Клік або тап пальцем по карті автоматично перераховує навігаційний маршрут
         map.on('click', function(e) {
             var currentWaypoints = routingControl.getWaypoints();
             routingControl.spliceWaypoints(currentWaypoints.length - 1, 1, e.latlng);
