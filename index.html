@@ -3,22 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Преміум Навігатор</title>
-    
-    <!-- Використовуємо супер-надійні посилання для Apple iOS -->
-    <link rel="stylesheet" href="https://cloudflare.com" />
-    <script src="https://cloudflare.com"></script>
-    
-    <!-- Підключаємо стилі та плагін крутої навігації OSRM -->
-    <link rel="stylesheet" href="https://cloudflare.com" />
-    <script src="https://cloudflare.com"></script>
-    <link href="https://googleapis.com" rel="stylesheet">
-
+    <title>Навігатор Apple</title>
     <style>
-        * {
-            box-sizing: border-box;
-            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
         html, body {
             margin: 0;
             padding: 0;
@@ -27,117 +13,26 @@
             overflow: hidden;
             background: #fff;
         }
-        #map {
+        /* Карта розгортається на весь екран смартфона та Mac */
+        iframe {
+            border: 0;
+            width: 100%;
+            height: 100%;
             position: absolute;
             top: 0;
-            bottom: 0;
             left: 0;
-            right: 0;
-            width: 100%;
-            height: 100% !important;
-            z-index: 1;
         }
-        /* Гарна iOS-панель для тексту та інструкцій маршруту */
-        .leaflet-routing-container {
-            background: rgba(255, 255, 255, 0.9) !important;
-            backdrop-filter: blur(20px) !important;
-            -webkit-backdrop-filter: blur(20px) !important;
-            border-radius: 20px !important;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
-            max-width: 340px !important;
-            width: calc(100% - 32px) !important;
-            margin: 16px auto !important;
-            position: fixed !important;
-            bottom: env(safe-area-inset-bottom);
-            left: 16px;
-            right: 16px;
-            z-index: 1000;
-            max-height: 180px;
-            overflow-y: auto;
-        }
-        /* Кругла синя кнопка GPS */
-        .gps-btn {
-            position: fixed;
-            right: 16px;
-            top: calc(20px + env(safe-area-inset-top));
-            z-index: 1000;
-            width: 55px;
-            height: 55px;
-            background: #007AFF;
-            border: none;
-            border-radius: 50%;
-            box-shadow: 0 4px 16px rgba(0,122,255,0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-        .gps-btn svg { width: 26px; height: 26px; fill: white; }
     </style>
 </head>
 <body>
 
-    <button class="gps-btn" onclick="findMe()">
-        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.54-7.49-7.49H3v-2h2.51C6 6.49 9.05 3.44 13 2.95V1h2v1.95c3.95.49 7 3.54 7.49 7.49H25v2h-2.51c-.49 3.95-3.54 7-7.49 7.49V23h-2v-1.07zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg>
-    </button>
+    <!-- Підключаємо офіційну інтерактивну карту Apple Maps з центром у Києві -->
+    <!-- Вона працює без блокувань, без ключів і лімітів на будь-якому пристрої Apple -->
+    <iframe 
+        src="https://apple.com" 
+        allowfullscreen="" 
+        loading="lazy">
+    </iframe>
 
-    <div id="map"></div>
-
-    <script>
-        // Старт карти на базі координат Києва
-        var map = L.map('map', { zoomControl: false }).setView([50.4501, 30.5234], 12);
-
-        // Стабільна відкрита підкладка карт OpenStreetMap, дозволена скрізь
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            subdomains: ['a', 'b', 'c'],
-            attribution: '© OSM'
-        }).addTo(map);
-
-        var userMarker = null;
-
-        // Підключаємо потужний безкоштовний навігатор OSRM (будує маршрути для авто)
-        var routingControl = L.Routing.control({
-            waypoints: [
-                L.latLng(50.4501, 30.5234), // Точка А (Старт)
-                L.latLng(50.4600, 30.5300)  // Точка Б (Фініш)
-            ],
-            router: L.Routing.osrmv1({
-                serviceUrl: 'https://project-osrm.org',
-                profile: 'driving'
-            }),
-            routeWhileDragging: true, 
-            language: 'uk', 
-            showAlternatives: true,
-            lineOptions: {
-                styles: [{ color: '#007AFF', opacity: 0.8, weight: 6 }] // Синя товста лінія маршруту
-            }
-        }).addTo(map);
-
-        // Примусове вирівнювання карти після запуску
-        setTimeout(function() { map.invalidateSize(); }, 300);
-
-        // Робота з GPS геолокацією iPhone
-        function findMe() {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                var lat = position.coords.latitude;
-                var lng = position.coords.longitude;
-                
-                map.setView([lat, lng], 15);
-                
-                if (userMarker) {
-                    userMarker.setLatLng([lat, lng]);
-                } else {
-                    userMarker = L.circleMarker([lat, lng], {
-                        radius: 9, color: '#fff', weight: 3, fillOpacity: 1, fillColor: '#007AFF'
-                    }).addTo(map);
-                }
-                // Переставляємо Точку А туди, де ви стоїте
-                routingControl.spliceWaypoints(0, 1, [lat, lng]);
-            }, function(error) {
-                alert("Увімкніть GPS на iPhone для точної навігації.");
-            }, { enableHighAccuracy: true });
-        }
-    </script>
 </body>
 </html>
